@@ -1,0 +1,47 @@
+/target
+
+# Terraform state (NEVER commit)
+**/.terraform/*
+**/*.tfstate
+**/*.tfstate.*
+**/terraform.tfstate.d/*
+**/terraform.tfvars
+
+# Terraform CLI local settings
+**/.terraformrc
+**/terraform.rc
+
+**/.env
+**/user_data.sh
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Variable files that may contain secrets
+*.tfvars
+*.tfvars.json
+
+# Override files (local-only)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform plan output
+*.tfplan
+*.plan
+
+# Local debug / sensitive outputs
+*.log
+*.pem
+*.key
+*.crt
+*.p12
+
+# Mac / Windows / IDE noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.iml

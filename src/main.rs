@@ -1,14 +1,9 @@
 mod dynamodb;
 mod common;
 mod routes;
-mod tracing;
+mod logging;
 mod config;
 
-use actix_cors::Cors;
-use actix_files::Files;
-use actix_web::http::header;
-use std::path::PathBuf;
-use std::sync::OnceLock;
 use actix_web::web;
 
 #[actix_web::main]
@@ -16,7 +11,7 @@ async fn main() -> std::io::Result<()> {
 
     let config = config::Config.clone();
 
-    if let Err(_) = tracing::init_tracing() {
+    if let Err(_) = logging::init_tracing() {
         eprintln!("Failed to setup tracing");
         panic!("Failed to initialize tracing");
     }

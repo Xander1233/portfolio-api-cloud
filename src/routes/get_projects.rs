@@ -6,7 +6,7 @@ pub async fn get_projects(state: web::Data<DynamoDbAppState>) -> actix_web::Resu
     let id: i64 = 1;
     let section_type = "PROJECTS";
 
-    match get_section::<serde_json::Value>(&state.ddb, &state.table, id, section_type).await {
+    match get_section::<serde_json::Value>(&state.ddb, &state.table, id, section_type, state.cache.clone(), state.cache_ttl).await {
         Ok(Some(stored_section)) => {
             Ok(HttpResponse::Ok().json(stored_section))
         }

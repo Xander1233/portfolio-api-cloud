@@ -14,6 +14,7 @@ pub struct StoredSection<T> {
 pub struct About {
     pub headline: String,
     pub content: String,
+    pub cv_link: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -23,7 +24,14 @@ pub struct PersonalInfo {
     pub birthdate: i64,
     pub email: String,
     pub location: String,
-    pub location_city: String
+    pub location_city: String,
+    pub links: Vec<PersonalInfoLink>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PersonalInfoLink {
+    pub name: String,
+    pub url: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -78,6 +86,7 @@ pub struct Skills {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SkillsItem {
     pub name: String,
-    pub level: String,
-    pub logo: String
+    pub level: i32,
+    pub logo: String,
+    pub logo_color: String,
 }

@@ -5,6 +5,7 @@ mod logging;
 mod config;
 mod queries;
 
+use std::time::Duration;
 use actix_web::web;
 use actix_cors::Cors;
 use actix_web::http::header;
@@ -24,7 +25,7 @@ async fn main() -> std::io::Result<()> {
         std::process::exit(1);
     });
 
-    let ddb_app_state = web::Data::new(dynamodb::initialize_dynamodb(&ddb_table).await);
+    let ddb_app_state = dynamodb::initialize_dynamodb(&ddb_table, Duration::new(config.http_server.cache_ttl_seconds, 0)).await;
 
     let server = actix_web::HttpServer::new(move || {
         actix_web::App::new()
@@ -46,7 +47,7 @@ async fn main() -> std::io::Result<()> {
                 .supports_credentials()
                 .max_age(3600))
             .app_data(web::Data::new(config.clone()))
-            .app_data(ddb_app_state.clone())
+            .app_data(web::Data::new(ddb_app_state.clone()))
             .configure(routes::config)
     })
     .bind(((*config::Config).http_server.host.clone(), (*config::Config).http_server.port))?;

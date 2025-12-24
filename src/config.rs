@@ -12,7 +12,9 @@ pub struct General {
 #[derive(Debug, Deserialize, Clone)]
 pub struct HttpServer {
     pub host: String,
-    pub port: u16
+    pub port: u16,
+    #[serde(rename = "cache_ttl")]
+    pub cache_ttl_seconds: u64,
 }
 
 #[derive(Debug, Deserialize, Clone)]

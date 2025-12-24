@@ -23,6 +23,8 @@ jobs:
       packages: write
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Resolve release tag
         id: resolve
         env:
@@ -67,8 +69,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/checkout@v4
 
       - name: Build and push to harbor
         id: docker_build_push

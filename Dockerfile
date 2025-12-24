@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/target/release/portfolio-api-cloud /app/portfolio-api-cloud
+COPY --from=builder /app/target/release/portfolio-api /app/portfolio-api
 
 LABEL org.opencontainers.image.source=https://github.com/xander1233/portfolio-api-cloud
 LABEL org.opencontainers.image.description="API for the cloud deployment of my portfolio"
@@ -23,4 +23,4 @@ LABEL org.opencontainers.image.licenses=MIT
 
 ENV APP_ENVIRONMENT=production
 EXPOSE 8080
-CMD ["/app/portfolio-api-cloud"]
+CMD ["/app/portfolio-api"]

@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /app/target/release/portfolio-api-cloud /app/portfolio-api-cloud
 
-LABEL org.opencontainers.image.source=https://github.com/Xander1233/portfolio-api-cloud
+LABEL org.opencontainers.image.source=https://github.com/xander1233/portfolio-api-cloud
 LABEL org.opencontainers.image.description="API for the cloud deployment of my portfolio"
 LABEL org.opencontainers.image.licenses=MIT
 

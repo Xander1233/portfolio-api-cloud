@@ -74,10 +74,10 @@ jobs:
         id: docker_build_push
         run: |
           docker build ./ \
-            -t ghcr.io/${{ github.repository_owner }}/portfolio-api-cloud:latest \
-            -t ghcr.io/${{ github.repository_owner }}/portfolio-api-cloud:${{ steps.resolve.outputs.tag }} \
+            -t ghcr.io/xander1233/portfolio-api-cloud:latest \
+            -t ghcr.io/xander1233/portfolio-api-cloud:${{ steps.resolve.outputs.tag }} \
           
-          docker push ghcr.io/${{ github.repository_owner }}/portfolio-api-cloud --all-tags
+          docker push ghcr.io/xander1233/portfolio-api-cloud --all-tags
 
       - name: Image digest
         run: echo ${{ steps.docker_build_push.outputs.digest }}

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use aws_config::{BehaviorVersion, SdkConfig};
 use aws_sdk_dynamodb as aws_dynamodb;
 use serde_json::Value;
 use tokio::sync::RwLock;
@@ -13,9 +14,8 @@ pub struct DynamoDbAppState {
     pub cache_ttl: Duration,
 }
 
-pub async fn initialize_dynamodb(table_name: &str, cache_ttl: Duration) -> DynamoDbAppState {
-    let shared_config = aws_config::load_from_env().await;
-    let ddb_client = aws_dynamodb::Client::new(&shared_config);
+pub async fn initialize_dynamodb(shared_config: &SdkConfig, table_name: &str, cache_ttl: Duration) -> DynamoDbAppState {
+    let ddb_client = aws_dynamodb::Client::new(shared_config);
 
     DynamoDbAppState {
         ddb: ddb_client,

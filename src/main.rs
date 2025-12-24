@@ -9,23 +9,37 @@ use std::time::Duration;
 use actix_web::web;
 use actix_cors::Cors;
 use actix_web::http::header;
+use aws_config::{BehaviorVersion, Region};
+use crate::config::AwsSecrets;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
 
     let config = (*config::Config).clone();
 
-    if let Err(_) = logging::init_tracing() {
+    if logging::init_tracing().is_err() {
         eprintln!("Failed to setup tracing");
         panic!("Failed to initialize tracing");
     }
 
-    let ddb_table = std::env::var("DYNAMODB_TABLE").unwrap_or_else(|_| {
-        tracing::error!(task = "env", result = "missing", "DYNAMODB_TABLE is not set");
-        std::process::exit(1);
-    });
+    let shared_config = aws_config::defaults(BehaviorVersion::v2025_08_07())
+        .region(Region::new("eu-central-1"))
+        .load()
+        .await;
 
-    let ddb_app_state = dynamodb::initialize_dynamodb(&ddb_table, Duration::new(config.http_server.cache_ttl_seconds, 0)).await;
+    let secrets: AwsSecrets = match AwsSecrets::load_from_aws(&shared_config).await {
+        Ok(secrets) => secrets,
+        Err(err) => {
+            tracing::error!(
+                task = "Load AWS Secrets",
+                result = "failure",
+                error = %err,
+                "Failed to load AWS Secrets"
+            );
+            panic!("Failed to load AWS Secrets: {err}");
+        }
+    };
+    let ddb_app_state = dynamodb::initialize_dynamodb(&shared_config, &secrets.ddb_table, Duration::new(config.http_server.cache_ttl_seconds, 0)).await;
 
     let server = actix_web::HttpServer::new(move || {
         actix_web::App::new()
@@ -50,7 +64,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(ddb_app_state.clone()))
             .configure(routes::config)
     })
-    .bind(((*config::Config).http_server.host.clone(), (*config::Config).http_server.port))?;
+    .bind((config::Config.http_server.host.clone(), config::Config.http_server.port))?;
 
     tracing::info!(
         task = "Actix setup",
@@ -58,13 +72,13 @@ async fn main() -> std::io::Result<()> {
         "Actix web server successfully configured"
     );
 
-    let port = (*config::Config).http_server.port;
+    let port = config::Config.http_server.port;
 
     tracing::info!(
         task = "Actix setup",
         port = port,
         "Actix web server running on {}:{}",
-        (*config::Config).http_server.host,
+        config::Config.http_server.host,
         port
     );
 

@@ -1,5 +1,6 @@
 use actix_web::{web, HttpResponse};
-use crate::dynamodb::{DynamoDbAppState, get_section};
+use crate::dynamodb::{DynamoDbAppState};
+use crate::queries::get_section::get_section;
 
 pub async fn get_education(state: web::Data<DynamoDbAppState>) -> actix_web::Result<HttpResponse> {
     let id: i64 = 1;

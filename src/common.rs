@@ -18,10 +18,12 @@ pub struct About {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PersonalInfo {
-    pub name: String,
+    pub first_name: String,
+    pub last_name: String,
+    pub birthdate: i64,
     pub email: String,
-    pub phone: String,
     pub location: String,
+    pub location_city: String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -32,10 +34,13 @@ pub struct Education {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EducationItem {
     pub institution: String,
+    pub institution_url: String,
     pub degree: String,
     pub field_of_study: String,
-    pub start_year: i32,
-    pub end_year: Option<i32>,
+    pub start: String,
+    pub end: Option<String>,
+    pub current: bool,
+    pub order: i32
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -46,10 +51,23 @@ pub struct Experience {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExperienceItem {
     pub company: String,
+    pub company_url: String,
+    pub start: String,
+    pub end: Option<String>,
+    pub current: bool,
+    pub order: i32,
+    pub career: Vec<ExperienceCareer>
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExperienceCareer {
     pub position: String,
-    pub start_date: String,
-    pub end_date: Option<String>,
-    pub responsibilities: Vec<String>,
+    pub location: String,
+    pub start: String,
+    pub end: Option<String>,
+    pub current: bool,
+    pub order: i32,
+    pub description: Vec<String>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -61,18 +79,5 @@ pub struct Skills {
 pub struct SkillsItem {
     pub name: String,
     pub level: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Projects {
-    pub items: Vec<ProjectsItem>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ProjectsItem {
-    pub name: String,
-    pub description: String,
-    pub url: Option<String>,
-    pub technologies: Vec<String>,
-    pub status: String,
+    pub logo: String
 }

@@ -15,6 +15,6 @@ pub fn config(cfg: &mut actix_web::web::ServiceConfig) {
             .route("/education", actix_web::web::get().to(get_education::get_education))
             .route("/experience", actix_web::web::get().to(get_experience::get_experience))
             .route("/skills", actix_web::web::get().to(get_skills::get_skills))
-            .route("/projects", actix_web::web::get().to(get_projects::get_projects))
+            // .route("/projects", actix_web::web::get().to(get_projects::get_projects))
     );
 }

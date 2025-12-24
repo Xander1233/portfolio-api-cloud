@@ -37,7 +37,7 @@ impl ConfigStruct {
         if let Ok(config) = conf {
             config.try_deserialize()
         } else {
-            Err(ConfigError::Message("Failed to load configuration".into()))
+            Err(ConfigError::Message("Failed to load configuration".to_string()))
         }
     }
 }
@@ -56,36 +56,4 @@ pub static Config: Lazy<ConfigStruct> = Lazy::new(|| {
     } else {
         panic!("Failed to load configuration");
     }
-});
-
-#[derive(Envconfig, Clone, Debug)]
-pub struct EnvSettingsStruct {
-    #[envconfig(nested = true)]
-    pub database: Database,
-    #[envconfig(nested = true)]
-    pub entra_id: EntraId,
-}
-
-#[derive(Envconfig, Clone, Debug)]
-pub struct Database {
-    #[envconfig(from = "DATABASE_URL")]
-    pub url: String,
-}
-
-#[derive(Envconfig, Clone, Debug)]
-pub struct EntraId {
-    #[envconfig(from = "ENTRA_ID_CLIENT_ID")]
-    pub client_id: String,
-    #[envconfig(from = "ENTRA_ID_TENANT_ID")]
-    pub tenant_id: String,
-    #[envconfig(from = "ENTRA_ID_CLIENT_SECRET")]
-    pub client_secret: String,
-    #[envconfig(from = "ENTRA_ID_JWT_SECRET")]
-    pub jwt_secret: String,
-    #[envconfig(from = "ENTRA_ID_REDIRECT_URI")]
-    pub redirect_uri: String,
-}
-
-pub static EnvSettings: Lazy<EnvSettingsStruct> = Lazy::new(|| {
-    EnvSettingsStruct::init_from_env().expect("Failed to initialize environment settings")
 });

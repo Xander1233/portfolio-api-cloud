@@ -44,22 +44,20 @@ async fn main() -> std::io::Result<()> {
     let server = actix_web::HttpServer::new(move || {
         actix_web::App::new()
             .wrap(Cors::permissive()
-                .allowed_origin_fn(|origin, _req_head| {
-                    origin.as_bytes().starts_with(b"http://localhost")
-                        || origin.as_bytes().starts_with(b"http://127.0.0.1")
-                        || origin.as_bytes().starts_with(b"https://david-neidhart.de")
-                        || origin.as_bytes().starts_with(b"https://cdn.david-neidhart.de")
-                })
-                .allowed_methods(vec!["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
-                .allowed_headers(vec![
-                    header::ACCEPT,
-                    header::AUTHORIZATION,
-                    header::CONTENT_TYPE,
-                    header::HeaderName::from_static("x-requested-with"),
-                    header::HeaderName::from_static("x-xsrf-token"),
-                ])
-                .supports_credentials()
-                .max_age(3600))
+                  .allowed_origin("https://david-neidhart.de")
+                  .allowed_origin("https://api.david-neidhart.de")
+                  .allowed_origin("https://cdn.david-neidhart.de")
+                  .allowed_origin("http://localhost:4200")
+                  .allowed_origin("http://127.0.0.1:4200")
+                  .allowed_methods(vec!["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+                  .allowed_headers(vec![
+                      header::ACCEPT,
+                      header::AUTHORIZATION,
+                      header::CONTENT_TYPE,
+                      header::HeaderName::from_static("x-requested-with"),
+                      header::HeaderName::from_static("x-xsrf-token"),
+                  ])
+                  .max_age(3600))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(ddb_app_state.clone()))
             .configure(routes::config)

@@ -37,6 +37,94 @@ data "aws_subnet" "this" {
 
 # --- EC2 instance for API ---
 
+### IAM Role for EC2 instance
+data "aws_iam_policy_document" "ec2_trust" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "ec2" {
+  name               = "${local.name.api}-ec2-role"
+  assume_role_policy = data.aws_iam_policy_document.ec2_trust.json
+
+  tags = merge(local.tags, {
+    Name = "${local.name.api}-ec2"
+  })
+}
+
+data "aws_iam_policy_document" "ec2_permissions" {
+  statement {
+    actions   = ["s3:ListBucket"]
+    resources = [var.app_config_s3_bucket_arn]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["${var.app_config_s3_prefix}*"]
+    }
+  }
+
+  statement {
+    actions   = ["s3:GetObject"]
+    resources = ["${var.app_config_s3_bucket_arn}/${var.app_config_s3_prefix}*"]
+  }
+
+  statement {
+    actions   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
+    resources = var.secrets_arns
+  }
+
+  statement {
+    sid    = "DynamoDbAccess"
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:DeleteItem",
+      "dynamodb:Query",
+      "dynamodb:Scan",
+      "dynamodb:BatchGetItem",
+      "dynamodb:BatchWriteItem",
+      "dynamodb:DescribeTable"
+    ]
+    resources = var.dynamodb_arn
+  }
+}
+
+resource "aws_iam_policy" "ec2_permissions" {
+  name   = "${local.name.api}-ec2-permissions"
+  policy = data.aws_iam_policy_document.ec2_permissions.json
+
+  tags = merge(local.tags, {
+    Name = "${local.name.api}-ec2"
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_permissions" {
+  role       = aws_iam_role.ec2.name
+  policy_arn = aws_iam_policy.ec2_permissions.arn
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_core" {
+  role       = aws_iam_role.ec2.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "ec2" {
+  name = "${local.name.api}-ec2-profile"
+  role = aws_iam_role.ec2.name
+
+  tags = merge(local.tags, {
+    Name = "${local.name.api}-ec2"
+  })
+}
+
 ### Security Group for API instance
 resource "aws_security_group" "api_sg" {
   name        = "${local.name.default}-sg"
@@ -91,6 +179,26 @@ resource "aws_instance" "api" {
   instance_type          = var.instance_type
   vpc_security_group_ids = [aws_security_group.api_sg.id]
 
+  iam_instance_profile = aws_iam_instance_profile.ec2.name
+
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
+
+  user_data = templatefile("${path.module}/user_data.sh", {
+    image_uri                   = var.image_uri
+    container_name              = local.name.api
+    host_port                   = 80
+    container_port              = 8000
+    s3_config_uri               = var.app_config_s3_config_uri
+    container_config_mount_path = "/app/config/config.toml"
+    aws_region                  = var.aws_region
+    extra_docker_args           = "--log-driver=journald"
+  })
+
+  user_data_replace_on_change = true
+
   tags = merge(local.tags, {
     Name = "${local.name.api}-ec2"
   })
@@ -110,7 +218,15 @@ data "aws_acm_certificate" "api_certificate" {
 }
 
 data "aws_cloudfront_cache_policy" "api_cache_policy" {
-  name = "UseOriginCacheControlHeaders"
+  name = "Managed-CachingDisabled"
+}
+
+data "aws_cloudfront_origin_request_policy" "api_origin_request_policy" {
+  name = "Managed-AllViewerAndCloudFrontHeaders-2022-06"
+}
+
+data "aws_cloudfront_response_headers_policy" "api_response_headers_policy" {
+  name = "Managed-CORS-with-preflight-and-SecurityHeadersPolicy"
 }
 
 data "aws_wafv2_web_acl" "api_web_acl" {
@@ -145,6 +261,8 @@ resource "aws_cloudfront_distribution" "api_distribution" {
 
     viewer_protocol_policy = "redirect-to-https"
 
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.api_origin_request_policy.id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.api_response_headers_policy.id
     cache_policy_id = data.aws_cloudfront_cache_policy.api_cache_policy.id
   }
 

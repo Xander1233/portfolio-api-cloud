@@ -84,3 +84,33 @@ variable "public_origin_ac" {
   description = "Origin Access Control for the public S3 bucket"
   type        = string
 }
+
+variable "app_config_s3_bucket_arn" {
+  type        = string
+  description = "e.g. arn:aws:s3:::my-bucket"
+}
+
+variable "app_config_s3_prefix" {
+  type        = string
+  description = "e.g. myapp/prod/ (must end with / typically)"
+}
+
+variable "app_config_s3_config_uri" {
+  type        = string
+  description = "S3 URI for the app config, e.g. s3://my-bucket/myapp/prod/"
+}
+
+variable "secrets_arns" {
+  type        = list(string)
+  description = "List of Secrets Manager secret ARNs the app may read"
+}
+
+variable "image_uri" {
+  type        = string
+  description = "GHCR image URI for the EC2 instance"
+}
+
+variable "dynamodb_arn" {
+  type        = list(string)
+  description = "ARN of the DynamoDB table used by the application"
+}

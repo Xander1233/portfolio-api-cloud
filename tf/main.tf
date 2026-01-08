@@ -372,6 +372,13 @@ resource "aws_cloudfront_distribution" "public_distribution" {
     minimum_protocol_version       = "TLSv1.2_2021"
   }
 
+  custom_error_response {
+    error_code = 403
+    error_caching_min_ttl = 60
+    response_page_path = "/index.html"
+    response_code = 200
+  }
+
   tags = merge(local.tags, {
     Name = "${local.name.public}-cf"
   })

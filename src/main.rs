@@ -11,16 +11,14 @@ use actix_cors::Cors;
 use actix_web::http::header;
 use aws_config::{BehaviorVersion, Region};
 use crate::config::AwsSecrets;
+use crate::logging::init_tracing;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
 
-    let config = (*config::Config).clone();
+    let _log_guard = init_tracing();
 
-    if logging::init_tracing().is_err() {
-        eprintln!("Failed to setup tracing");
-        panic!("Failed to initialize tracing");
-    }
+    let config = (*config::Config).clone();
 
     let shared_config = aws_config::defaults(BehaviorVersion::v2025_08_07())
         .region(Region::new("eu-central-1"))

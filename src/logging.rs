@@ -1,69 +1,54 @@
-use std::process;
-use tracing::subscriber;
-use tracing_subscriber::{fmt, Layer};
-use tracing_subscriber::registry::Registry;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-use tracing_loki;
-use url::Url;
+use std::str::FromStr;
+use config::ValueKind::String;
+use tracing::log::LevelFilter;
+use tracing_subscriber::Layer;
+use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::prelude::*;
 use crate::config::{Config, ConfigStruct};
 
-pub fn init_tracing() -> Result<(), Box<dyn std::error::Error>> {
+pub fn init_tracing() -> tracing_appender::non_blocking::WorkerGuard {
 
-    let config: &ConfigStruct = &*Config;
+    let config: &ConfigStruct = &Config;
 
-    let now = chrono::Utc::now().timestamp();
+    let file_appender =
+        tracing_appender::rolling::hourly(config.logging.directory.clone(), config.logging.file.clone());
+    let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
-    let app_name = format!("{}-{}", config.general.hostname, &now);
+    let env_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new(config.logging.level.clone()));
+
+    let env_filter_level = match env_filter.max_level_hint() {
+        Some(t) => t.to_string(),
+        None => "UNKNOWN".to_string(),
+    };
+
+    let stdout_filter_level = tracing_subscriber::filter::LevelFilter::from_str(&config.logging.level)
+        .unwrap_or(tracing_subscriber::filter::LevelFilter::INFO);
 
     let stdout_layer = fmt::layer()
         .pretty()
         .with_target(false)
-        .with_filter(tracing_subscriber::filter::LevelFilter::INFO);
+        .with_filter(stdout_filter_level);
 
-    std::fs::create_dir_all("logs")?;
+    let file_layer = fmt::layer()
+        .json()
+        .with_current_span(true)
+        .with_span_list(true)
+        .with_writer(non_blocking);
 
-    let mut log_files: Vec<_> = std::fs::read_dir("logs")?
-        .filter_map(Result::ok)
-        .filter(|entry| {
-            if let Some(ext) = entry.path().extension() {
-                ext == "log"
-            } else {
-                false
-            }
-        }).collect();
-    let log_files_count = log_files.len();
-
-    if log_files_count > 10 {
-        log_files.sort_by_key(|entry| entry.metadata().and_then(|m| m.created()).unwrap_or(std::time::SystemTime::UNIX_EPOCH));
-        if let Some(oldest) = log_files.first() {
-            std::fs::remove_file(oldest.path())?;
-        }
-    }
-
-    let file = std::fs::File::create(format!("logs/{app_name}.log"))?;
-
-    let file_layer = fmt::layer().json().with_writer(file).with_filter(match &config.logging.level {
-        level if level.eq_ignore_ascii_case("DEBUG") => tracing_subscriber::filter::LevelFilter::DEBUG,
-        level if level.eq_ignore_ascii_case("INFO") => tracing_subscriber::filter::LevelFilter::INFO,
-        level if level.eq_ignore_ascii_case("WARN") => tracing_subscriber::filter::LevelFilter::WARN,
-        level if level.eq_ignore_ascii_case("ERROR") => tracing_subscriber::filter::LevelFilter::ERROR,
-        level if level.eq_ignore_ascii_case("TRACE") => tracing_subscriber::filter::LevelFilter::TRACE,
-        _ => tracing_subscriber::filter::LevelFilter::INFO,
-    });
-
-    let subscriber = tracing_subscriber::registry()
-        .with(stdout_layer)
-        .with(file_layer);
-
-    subscriber::set_global_default(subscriber)
-        .expect("Failed to set global subscriber");
+    tracing_subscriber::registry()
+        .with(env_filter)     // global filter
+        .with(stdout_layer)   // stdout
+        .with(file_layer)     // file
+        .init();
 
     tracing::info!(
-        task = "tracing_setup",
+        task = "Initialize Tracing",
         result = "success",
-        "tracing successfully set up"
+        "Tracing initialized with level: {}; Global level: {}",
+        config.logging.level,
+        env_filter_level
     );
 
-    Ok(())
+    guard
 }

@@ -22,6 +22,7 @@ pub struct HttpServer {
 pub struct Logging {
     pub level: String,
     pub file: String,
+    pub directory: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]

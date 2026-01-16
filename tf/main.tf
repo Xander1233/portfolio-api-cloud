@@ -1,3 +1,6 @@
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
 locals {
   name = {
     default = var.project
@@ -7,6 +10,8 @@ locals {
   tags = {
     Project = var.project
   }
+  log_group_name = "/ec2/${local.name.api}"
+  log_group_arn  = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:${local.log_group_name}:*"
 }
 
 import {
@@ -94,6 +99,25 @@ data "aws_iam_policy_document" "ec2_permissions" {
       "dynamodb:DescribeTable"
     ]
     resources = var.dynamodb_arn
+  }
+
+  statement {
+    sid    = "CloudWatchLogsWriteToOneGroup"
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogStream",
+      "logs:DescribeLogStreams",
+      "logs:PutLogEvents",
+      "logs:PutRetentionPolicy"
+    ]
+    resources = [local.log_group_arn]
+  }
+
+  statement {
+    sid      = "CloudWatchLogsCreateGroup"
+    effect   = "Allow"
+    actions  = ["logs:CreateLogGroup"]
+    resources = ["*"]
   }
 }
 
@@ -193,6 +217,8 @@ resource "aws_instance" "api" {
     container_port              = 8000
     s3_config_uri               = var.app_config_s3_config_uri
     container_config_mount_path = "/app/config/config.toml"
+    logs_dir                    = "/var/log/${local.name.api}"
+    log_group_name              = local.log_group_name
     aws_region                  = var.aws_region
     extra_docker_args           = "--log-driver=journald"
   })
@@ -373,10 +399,10 @@ resource "aws_cloudfront_distribution" "public_distribution" {
   }
 
   custom_error_response {
-    error_code = 403
     error_caching_min_ttl = 60
-    response_page_path = "/index.html"
-    response_code = 200
+    error_code            = 403
+    response_code         = 200
+    response_page_path    = "/index.html"
   }
 
   tags = merge(local.tags, {

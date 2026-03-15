@@ -1,35 +1,34 @@
-project                   = "example"
-aws_region                = "eu-central-1"
+project                              = "portfolio"
+environment                          = "prod"
+aws_region                           = "eu-central-1"
+aws_application                      = "arn:aws:resource-groups:eu-central-1:111122223333:group/Portfolio/12345678901234567890"
 
-public_domain_name        = "example.com"
-api_domain_name           = "api.example.com"
-hosted_zone_id            = "A011111111BCDE1F1G1HI"  # Route53 zone id
+cf_api_token                         = "cloudflare-token"
+cf_dns_zone                          = "example.com"
+api_domain_name                      = "api.example.com"
+public_domain_name                   = "example.com"
 
-instance_type             = "t3.micro"
-app_port                  = 80
-ami_id                    = "ami-004e960cde33f9146"
+public_bucket_name                   = "example-public-bucket"
+public_origin_access_control_id      = "E1234567890ABC"
+api_web_acl_name                     = "CreatedByCloudFront-api"
+public_web_acl_name                  = "CreatedByCloudFront-public"
 
-vpc_id                    = "vpc-12345678"
-subnet_id                 = "subnet-12345678"
+app_image_uri                        = "ghcr.io/owner/portfolio-api:v1.0.0"
+instance_type                        = "t3.micro"
+ami_id_override                      = null
+preferred_subnet_id                  = null
+app_port                             = 80
 
-s3_bucket                 = "bucket-example-name"
+app_config_s3_bucket_name            = "example-config-bucket"
+app_config_s3_prefix                 = "app/portfolio-api/config"
+app_config_s3_object_key             = "config.toml"
 
-cf_dns_zone               = "example.com"
-cf_api_token              = "cloudflare_api_token_value"
+secrets_arns                         = ["arn:aws:secretsmanager:eu-central-1:111122223333:secret:prod/portfolio/api"]
+dynamodb_arns                        = ["arn:aws:dynamodb:eu-central-1:111122223333:table/portfolio"]
 
-api_cf_id                 = "123456789abcdef0" # CloudFront distribution ID
+alert_email                          = "alerts@example.com"
+health_check_path                    = "/health"
+health_lambda_image_tag              = "latest"
 
-public_web_acl_name       = "ACL-Name"
-api_web_acl_name          = "ACL-Name-API"
-
-public_origin_ac          = "origin-access-identity-id"
-
-app_config_s3_bucket_arn  = "arn:aws:s3:::bucket-example-name"
-app_config_s3_prefix      = "app/appname/prefix"
-app_config_s3_config_uri  = "s3://bucket-example-name/app/appname/prefix"
-
-secrets_arns              = [ "arn:aws:secretsmanager:..." ]
-
-image_uri                 = "ghcr.io/namespace/image:tag"
-
-dynamodb_arn              = [ "arn:aws:dynamodb:eu-central-1:123456789012:table/example-table" ]
+github_repository                    = "owner/repo"
+github_oidc_branches                 = ["main"]

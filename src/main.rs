@@ -4,13 +4,17 @@ mod routes;
 mod logging;
 mod config;
 mod queries;
+mod auth;
+mod jwk_cache;
 
-use std::time::Duration;
+use std::sync::Arc;
 use actix_web::web;
 use actix_cors::Cors;
 use actix_web::http::header;
 use aws_config::{BehaviorVersion, Region};
+use time::Duration;
 use crate::config::AwsSecrets;
+use crate::jwk_cache::{cognito_jwks_url, JwksCache};
 use crate::logging::init_tracing;
 
 #[actix_web::main]
@@ -37,7 +41,10 @@ async fn main() -> std::io::Result<()> {
             panic!("Failed to load AWS Secrets: {err}");
         }
     };
-    let ddb_app_state = dynamodb::initialize_dynamodb(&shared_config, &secrets.ddb_table, Duration::new(config.http_server.cache_ttl_seconds, 0)).await;
+
+    let ddb_app_state = dynamodb::initialize_dynamodb(&shared_config, &secrets.ddb_table, std::time::Duration::new(config.http_server.cache_ttl_seconds, 0)).await;
+
+    let cache = web::Data::new(JwksCache::new(&secrets.cognito_region, &secrets.cognito_user_pool_id, Duration::hours(6), &secrets.cognito_app_client_id));
 
     let server = actix_web::HttpServer::new(move || {
         actix_web::App::new()
@@ -58,6 +65,7 @@ async fn main() -> std::io::Result<()> {
                   .max_age(3600))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(ddb_app_state.clone()))
+            .app_data(cache.clone())
             .configure(routes::config)
     })
     .bind((config::Config.http_server.host.clone(), config::Config.http_server.port))?;

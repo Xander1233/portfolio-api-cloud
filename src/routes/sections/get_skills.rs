@@ -1,8 +1,9 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{get, web, HttpResponse};
 use crate::common::{Skills, StoredSection};
 use crate::dynamodb::{DynamoDbAppState};
 use crate::queries::get_section::get_section;
 
+#[get("/skills")]
 pub async fn get_skills(state: web::Data<DynamoDbAppState>) -> actix_web::Result<HttpResponse> {
     let id: i64 = 1;
     let section_type = "SKILLS";

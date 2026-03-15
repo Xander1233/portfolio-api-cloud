@@ -1,7 +1,8 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{get, web, HttpResponse};
 use aws_sdk_dynamodb::types::AttributeValue;
 use crate::dynamodb::DynamoDbAppState;
 
+#[get("/profile")]
 pub async fn get_profile(state: web::Data<DynamoDbAppState>) -> actix_web::Result<HttpResponse> {
 
     let id: i64 = 1;

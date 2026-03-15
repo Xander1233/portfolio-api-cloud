@@ -6,11 +6,6 @@ use envconfig::{Envconfig, Error as EnvConfigError};
 use once_cell::sync::Lazy;
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct General {
-    pub hostname: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
 pub struct HttpServer {
     pub host: String,
     pub port: u16,
@@ -27,7 +22,6 @@ pub struct Logging {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct ConfigStruct {
-    pub general: General,
     pub http_server: HttpServer,
     pub logging: Logging,
 }
@@ -66,6 +60,12 @@ pub static Config: Lazy<ConfigStruct> = Lazy::new(|| {
 pub struct AwsSecrets {
     #[serde(rename = "DYNAMODB_TABLE")]
     pub ddb_table: String,
+    #[serde(rename = "COGNITO_USER_POOL_ID")]
+    pub cognito_user_pool_id: String,
+    #[serde(rename = "COGNITO_REGION")]
+    pub cognito_region: String,
+    #[serde(rename = "COGNITO_APP_CLIENT_ID")]
+    pub cognito_app_client_id: String,
 }
 
 impl AwsSecrets {

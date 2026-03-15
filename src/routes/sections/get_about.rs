@@ -1,7 +1,8 @@
-use actix_web::web;
+use actix_web::{get, web};
 use crate::dynamodb::{DynamoDbAppState};
 use crate::queries::get_section::get_section;
 
+#[get("/about")]
 pub async fn get_about(state: web::Data<DynamoDbAppState>) -> actix_web::HttpResponse {
     
     let id: i64 = 1;

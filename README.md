@@ -8,4 +8,4 @@ The infrastructure is provisioned and managed using Terraform. All resources are
 
 ## Infrastructure
 
-<img width="848" height="670" alt="portfolio-infrastructure" src="https://github.com/user-attachments/assets/3bf7548e-7676-4a24-be5c-ffa8d6b9d5f9" />
+<img width="1031" height="880" alt="portfolio-infrastructure" src="assets/infrastructure-diagram.png" />

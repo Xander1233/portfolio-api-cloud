@@ -5,6 +5,7 @@ mod get_education;
 mod get_experience;
 mod get_skills;
 mod get_projects;
+mod health;
 
 pub fn config(cfg: &mut actix_web::web::ServiceConfig) {
     cfg.service(
@@ -16,5 +17,6 @@ pub fn config(cfg: &mut actix_web::web::ServiceConfig) {
             .route("/experience", actix_web::web::get().to(get_experience::get_experience))
             .route("/skills", actix_web::web::get().to(get_skills::get_skills))
             // .route("/projects", actix_web::web::get().to(get_projects::get_projects))
+            .service(health::health)
     );
 }

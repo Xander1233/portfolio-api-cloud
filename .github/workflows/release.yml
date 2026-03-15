@@ -21,6 +21,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -75,9 +76,71 @@ jobs:
         run: |
           docker build ./ \
             -t ghcr.io/xander1233/portfolio-api-cloud:latest \
-            -t ghcr.io/xander1233/portfolio-api-cloud:${{ steps.resolve.outputs.tag }} \
+            -t ghcr.io/xander1233/portfolio-api-cloud:${{ steps.resolve.outputs.tag }}
           
           docker push ghcr.io/xander1233/portfolio-api-cloud --all-tags
 
-      - name: Image digest
-        run: echo ${{ steps.docker_build_push.outputs.digest }}
+  upload_health_lambda:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ECR_REPOSITORY: ${{ vars.ECR_HEALTH_LAMBDA_REPOSITORY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve release tag
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+            gh release view "$TAG" >/dev/null || { echo "Tag $TAG not found"; exit 1; }
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          
+          TAG="$(gh api repos/${{ github.repository }}/releases/latest --jq .tag_name 2>/dev/null || true)"
+          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
+            TAG="$(gh api repos/${{ github.repository }}/releases --paginate \
+                   --jq 'map(select(.draft|not)) | sort_by(.published_at) | reverse | .[0].tag_name' \
+                   | head -n1)"
+          fi
+          
+          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
+            echo "No releases found in repo ${{ github.repository }}"; exit 1
+          fi
+          
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Lambda image
+        working-directory: health-lambda
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          IMAGE_URI="$REGISTRY/$ECR_REPOSITORY"
+          docker build -t "$IMAGE_URI:latest" -t "$IMAGE_URI:${{ steps.resolve.outputs.tag }}" .
+          docker push "$IMAGE_URI" --all-tags

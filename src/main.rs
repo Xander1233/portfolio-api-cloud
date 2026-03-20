@@ -7,14 +7,13 @@ mod queries;
 mod auth;
 mod jwk_cache;
 
-use std::sync::Arc;
 use actix_web::web;
 use actix_cors::Cors;
 use actix_web::http::header;
 use aws_config::{BehaviorVersion, Region};
 use time::Duration;
 use crate::config::AwsSecrets;
-use crate::jwk_cache::{cognito_jwks_url, JwksCache};
+use crate::jwk_cache::{JwksCache};
 use crate::logging::init_tracing;
 
 #[actix_web::main]
@@ -22,9 +21,9 @@ async fn main() -> std::io::Result<()> {
 
     let _log_guard = init_tracing();
 
-    let config = (*config::Config).clone();
+    let config = (*config::CONFIG).clone();
 
-    let shared_config = aws_config::defaults(BehaviorVersion::v2025_08_07())
+    let shared_config = aws_config::defaults(BehaviorVersion::v2026_01_12())
         .region(Region::new("eu-central-1"))
         .load()
         .await;
@@ -68,7 +67,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(cache.clone())
             .configure(routes::config)
     })
-    .bind((config::Config.http_server.host.clone(), config::Config.http_server.port))?;
+    .bind((config::CONFIG.http_server.host.clone(), config::CONFIG.http_server.port))?;
 
     tracing::info!(
         task = "Actix setup",
@@ -76,13 +75,13 @@ async fn main() -> std::io::Result<()> {
         "Actix web server successfully configured"
     );
 
-    let port = config::Config.http_server.port;
+    let port = config::CONFIG.http_server.port;
 
     tracing::info!(
         task = "Actix setup",
         port = port,
         "Actix web server running on {}:{}",
-        config::Config.http_server.host,
+        config::CONFIG.http_server.host,
         port
     );
 

@@ -1,5 +1,4 @@
 use aws_sdk_dynamodb as dynamodb;
-use dynamodb::types::AttributeValue;
 use crate::common::StoredSection;
 
 pub async fn put_section<T: serde::Serialize>(

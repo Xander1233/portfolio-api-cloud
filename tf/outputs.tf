@@ -32,3 +32,4 @@ output "github_oidc_ecr_role_arn" {
   description = "IAM role ARN for GitHub Actions OIDC ECR push."
   value       = module.github_oidc_ecr.role_arn
 }
+

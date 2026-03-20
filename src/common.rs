@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use tracing_subscriber::fmt::writer::Tee;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StoredSection<T> {

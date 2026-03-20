@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use aws_config::{BehaviorVersion, SdkConfig};
+use aws_config::{SdkConfig};
 use aws_sdk_dynamodb as aws_dynamodb;
 use serde_json::Value;
 use tokio::sync::RwLock;

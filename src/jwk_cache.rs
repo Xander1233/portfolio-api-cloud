@@ -1,6 +1,6 @@
 use jsonwebtoken::DecodingKey;
 use serde::Deserialize;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap};
 use thiserror::Error;
 use time::{Duration, OffsetDateTime};
 use tokio::sync::RwLock;

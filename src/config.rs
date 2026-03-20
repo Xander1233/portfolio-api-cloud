@@ -1,8 +1,6 @@
-use std::sync::OnceLock;
 use aws_config::SdkConfig;
 use config::{ConfigError, Config as ConfigLoader};
 use serde::Deserialize;
-use envconfig::{Envconfig, Error as EnvConfigError};
 use once_cell::sync::Lazy;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -40,7 +38,7 @@ impl ConfigStruct {
     }
 }
 
-pub static Config: Lazy<ConfigStruct> = Lazy::new(|| {
+pub static CONFIG: Lazy<ConfigStruct> = Lazy::new(|| {
     let conf = ConfigLoader::builder()
         .add_source(config::File::with_name("config/config.toml").required(true))
         .build();

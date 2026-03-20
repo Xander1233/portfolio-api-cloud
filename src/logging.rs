@@ -1,14 +1,12 @@
 use std::str::FromStr;
-use config::ValueKind::String;
-use tracing::log::LevelFilter;
 use tracing_subscriber::Layer;
 use tracing_subscriber::{fmt, EnvFilter};
 use tracing_subscriber::prelude::*;
-use crate::config::{Config, ConfigStruct};
+use crate::config::{CONFIG, ConfigStruct};
 
 pub fn init_tracing() -> tracing_appender::non_blocking::WorkerGuard {
 
-    let config: &ConfigStruct = &Config;
+    let config: &ConfigStruct = &CONFIG;
 
     let file_appender =
         tracing_appender::rolling::hourly(config.logging.directory.clone(), config.logging.file.clone());

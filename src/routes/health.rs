@@ -1,6 +1,5 @@
-use actix_web::{get, web};
+use actix_web::{get};
 use serde::{Serialize};
-use crate::dynamodb::{DynamoDbAppState};
 
 #[derive(Serialize)]
 struct HealthResponse {
@@ -9,24 +8,8 @@ struct HealthResponse {
 }
 
 #[get("/health")]
-pub async fn health(state: web::Data<DynamoDbAppState>) -> actix_web::HttpResponse {
-    let ddb_status = check_ddb_health(&state).await;
-
-    let response = HealthResponse {
-        status: match ddb_status {
-            Ok(_) => "OK".to_string(),
-            Err(_) => "degraded".to_string()
-        }
-    };
-    actix_web::HttpResponse::Ok().json(response)
-}
-
-async fn check_ddb_health(state: &DynamoDbAppState) -> Result<(), String> {
-    state.ddb
-        .list_tables()
-        .limit(0)
-        .send()
-        .await
-        .map(|_| ())
-        .map_err(|e| format!("DynamoDB health check failed: {}", e.into_service_error()))
+pub async fn health() -> actix_web::HttpResponse {
+    actix_web::HttpResponse::Ok().json(HealthResponse {
+        status: "ok".to_string(),
+    })
 }

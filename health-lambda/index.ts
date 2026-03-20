@@ -18,17 +18,11 @@ export const handler: EventBridgeHandler<any, any, Result> = async (event) => {
 
     if (!result.ok) throw new Error(`Health check failed with status ${result.status}`);
 
-    const body: { status: string } = await result.json();
-
-    if (body.status === "degraded") return {
-        ok: false,
-        status: result.status,
-        body: JSON.stringify(body),
-    };
+    const body = await result.text();
 
     return {
         ok: true,
         status: result.status,
-        body: JSON.stringify(body),
+        body
     };
 }

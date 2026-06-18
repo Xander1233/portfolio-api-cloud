@@ -1,20 +1,25 @@
-mod get_profile;
-mod get_about;
-mod get_personal_information;
-mod get_education;
-mod get_experience;
-mod get_skills;
-mod get_projects;
+mod about;
+mod education;
+mod experience;
+mod handler;
+mod personal_information;
+mod profile;
+mod projects;
+mod skills;
+mod testimonials;
 
-pub fn config(cfg: &mut actix_web::web::ServiceConfig) {
+use actix_web::web;
+
+pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(
-        actix_web::web::scope("/sections")
-            .service(get_about::get_about)
-            .service(get_profile::get_profile)
-            .service(get_personal_information::get_personal_information)
-            .service(get_education::get_education)
-            .service(get_experience::get_experience)
-            .service(get_skills::get_skills)
-            // .service(get_projects::get_projects)
+        web::scope("/sections")
+            .service(about::get_about)
+            .service(personal_information::get_personal_information)
+            .service(education::get_education)
+            .service(experience::get_experience)
+            .service(skills::get_skills)
+            .service(projects::get_projects)
+            .service(testimonials::get_testimonials)
+            .service(profile::get_profile),
     );
 }

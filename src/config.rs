@@ -1,90 +1,80 @@
-use aws_config::SdkConfig;
-use config::{ConfigError, Config as ConfigLoader};
-use serde::Deserialize;
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
-#[derive(Debug, Deserialize, Clone)]
+use aws_config::SdkConfig;
+use config::{Config as ConfigLoader, ConfigError};
+use serde::Deserialize;
+use thiserror::Error;
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct HttpServer {
     pub host: String,
     pub port: u16,
     #[serde(rename = "cache_ttl")]
     pub cache_ttl_seconds: u64,
+    #[serde(default)]
+    pub allowed_origins: Vec<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Logging {
     pub level: String,
     pub file: String,
     pub directory: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Clone, Deserialize)]
+pub struct Assets {
+    pub cdn_base_url: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct ConfigStruct {
     pub http_server: HttpServer,
     pub logging: Logging,
+    pub assets: Assets,
 }
 
 impl ConfigStruct {
-    pub fn new() -> Result<Self, ConfigError> {
-        let conf = ConfigLoader::builder()
+    fn load() -> Result<Self, ConfigError> {
+        ConfigLoader::builder()
             .add_source(config::File::with_name("config/config.toml").required(true))
-            .build();
-
-        if let Ok(config) = conf {
-            config.try_deserialize()
-        } else {
-            Err(ConfigError::Message("Failed to load configuration".to_string()))
-        }
+            .build()?
+            .try_deserialize()
     }
 }
 
-pub static CONFIG: Lazy<ConfigStruct> = Lazy::new(|| {
-    let conf = ConfigLoader::builder()
-        .add_source(config::File::with_name("config/config.toml").required(true))
-        .build();
-
-    if let Ok(config) = conf {
-        if let Ok(config) = config.try_deserialize::<ConfigStruct>() {
-            config
-        } else {
-            panic!("Failed to deserialize configuration");
-        }
-    } else {
-        panic!("Failed to load configuration");
-    }
+pub static CONFIG: LazyLock<ConfigStruct> = LazyLock::new(|| {
+    ConfigStruct::load().expect("failed to load configuration from config/config.toml")
 });
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct AwsSecrets {
     #[serde(rename = "DYNAMODB_TABLE")]
     pub ddb_table: String,
-    #[serde(rename = "COGNITO_USER_POOL_ID")]
-    pub cognito_user_pool_id: String,
-    #[serde(rename = "COGNITO_REGION")]
-    pub cognito_region: String,
-    #[serde(rename = "COGNITO_APP_CLIENT_ID")]
-    pub cognito_app_client_id: String,
+}
+
+#[derive(Debug, Error)]
+pub enum SecretsError {
+    #[error("failed to fetch secret: {0}")]
+    Fetch(String),
+    #[error("secret payload is empty")]
+    EmptyPayload,
+    #[error("invalid secret JSON: {0}")]
+    InvalidJson(#[from] serde_json::Error),
 }
 
 impl AwsSecrets {
-    pub async fn load_from_aws(shared_config: &SdkConfig) -> Result<Self, Box<dyn std::error::Error>> {
-        let asm = aws_sdk_secretsmanager::Client::new(shared_config);
+    pub async fn load_from_aws(shared: &SdkConfig) -> Result<Self, SecretsError> {
+        let asm = aws_sdk_secretsmanager::Client::new(shared);
 
-        let response = asm.get_secret_value()
+        let response = asm
+            .get_secret_value()
             .secret_id("prod/portfolio/env")
             .send()
-            .await?;
+            .await
+            .map_err(|err| SecretsError::Fetch(format!("{err:?}")))?;
 
-        if let Some(secret_string) = response.secret_string {
-            let secrets: AwsSecrets = match serde_json::from_str(&secret_string) {
-                Ok(secrets) => secrets,
-                Err(err) => {
-                    return Err(Box::new(err));
-                }
-            };
-            Ok(secrets)
-        } else {
-            Err("Secret string is empty".into())
-        }
+        let payload = response.secret_string.ok_or(SecretsError::EmptyPayload)?;
+        Ok(serde_json::from_str(&payload)?)
     }
 }

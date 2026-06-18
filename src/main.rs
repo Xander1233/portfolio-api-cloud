@@ -1,89 +1,45 @@
-mod dynamodb;
-mod common;
-mod routes;
-mod logging;
+mod app;
+mod cache;
 mod config;
-mod queries;
-mod auth;
-mod jwk_cache;
+mod error;
+mod logging;
+mod models;
+mod repo;
+mod routes;
+mod state;
 
-use actix_web::web;
-use actix_cors::Cors;
-use actix_web::http::header;
 use aws_config::{BehaviorVersion, Region};
-use time::Duration;
-use crate::config::AwsSecrets;
-use crate::jwk_cache::{JwksCache};
+
+use crate::config::{AwsSecrets, CONFIG};
 use crate::logging::init_tracing;
+
+const AWS_REGION: &str = "eu-central-1";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-
     let _log_guard = init_tracing();
 
-    let config = (*config::CONFIG).clone();
+    let config = (*CONFIG).clone();
 
+    tracing::info!(region = AWS_REGION, "loading AWS shared config");
     let shared_config = aws_config::defaults(BehaviorVersion::v2026_01_12())
-        .region(Region::new("eu-central-1"))
+        .region(Region::new(AWS_REGION))
         .load()
         .await;
 
-    let secrets: AwsSecrets = match AwsSecrets::load_from_aws(&shared_config).await {
-        Ok(secrets) => secrets,
-        Err(err) => {
-            tracing::error!(
-                task = "Load AWS Secrets",
-                result = "failure",
-                error = %err,
-                "Failed to load AWS Secrets"
+    let secrets = match AwsSecrets::load_from_aws(&shared_config).await {
+        Ok(secrets) => {
+            tracing::info!(
+                table = %secrets.ddb_table,
+                "AWS secrets loaded"
             );
-            panic!("Failed to load AWS Secrets: {err}");
+            secrets
+        }
+        Err(err) => {
+            tracing::error!(error = %err, "failed to load AWS secrets");
+            panic!("failed to load AWS secrets: {err}");
         }
     };
 
-    let ddb_app_state = dynamodb::initialize_dynamodb(&shared_config, &secrets.ddb_table, std::time::Duration::new(config.http_server.cache_ttl_seconds, 0)).await;
-
-    let cache = web::Data::new(JwksCache::new(&secrets.cognito_region, &secrets.cognito_user_pool_id, Duration::hours(6), &secrets.cognito_app_client_id));
-
-    let server = actix_web::HttpServer::new(move || {
-        actix_web::App::new()
-            .wrap(Cors::permissive()
-                  .allowed_origin("https://david-neidhart.de")
-                  .allowed_origin("https://api.david-neidhart.de")
-                  .allowed_origin("https://cdn.david-neidhart.de")
-                  .allowed_origin("http://localhost:4200")
-                  .allowed_origin("http://127.0.0.1:4200")
-                  .allowed_methods(vec!["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
-                  .allowed_headers(vec![
-                      header::ACCEPT,
-                      header::AUTHORIZATION,
-                      header::CONTENT_TYPE,
-                      header::HeaderName::from_static("x-requested-with"),
-                      header::HeaderName::from_static("x-xsrf-token"),
-                  ])
-                  .max_age(3600))
-            .app_data(web::Data::new(config.clone()))
-            .app_data(web::Data::new(ddb_app_state.clone()))
-            .app_data(cache.clone())
-            .configure(routes::config)
-    })
-    .bind((config::CONFIG.http_server.host.clone(), config::CONFIG.http_server.port))?;
-
-    tracing::info!(
-        task = "Actix setup",
-        result = "success",
-        "Actix web server successfully configured"
-    );
-
-    let port = config::CONFIG.http_server.port;
-
-    tracing::info!(
-        task = "Actix setup",
-        port = port,
-        "Actix web server running on {}:{}",
-        config::CONFIG.http_server.host,
-        port
-    );
-
-    server.run().await
+    app::run(config, secrets, shared_config).await
 }

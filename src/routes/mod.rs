@@ -1,10 +1,12 @@
-mod sections;
 mod health;
+mod sections;
 
-pub fn config(cfg: &mut actix_web::web::ServiceConfig) {
+use actix_web::web;
+
+pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(
-        actix_web::web::scope("/api")
+        web::scope("/api")
             .configure(sections::config)
-            .service(health::health)
+            .service(health::health),
     );
 }

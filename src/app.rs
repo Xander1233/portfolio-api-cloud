@@ -59,10 +59,9 @@ fn build_cors(allowed_origins: &[String]) -> Cors {
         ])
         .max_age(3600);
 
-    /*for origin in allowed_origins {
+    for origin in allowed_origins {
         cors = cors.allowed_origin(origin);
-    }*/
-    cors = cors.allow_any_origin();
+    }
 
     cors
 }
